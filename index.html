@@ -184,125 +184,186 @@
     <script>
       const editor = document.getElementById("editor");
       const copyButton = document.getElementById("copyButton");
-      const copyFeedback = document.getElementById("copyFeedback");
+      const copyFeedback = document.getElementById("copyFeedback"); // Ensure this is defined
 
+      // Helper function for feedback (or use the one in HTML)
+      function showFeedback(message, type = "success") {
+        if (copyFeedback) {
+          copyFeedback.textContent = message;
+          copyFeedback.className = type; // Set class 'success' or 'error'
+          setTimeout(() => {
+            copyFeedback.textContent = "";
+            copyFeedback.className = "";
+          }, 3000);
+        }
+      }
+
+      // --- Function to clean HTML string ---
+      // This function takes HTML, parses it, cleans it, and returns clean HTML
+      function getCleanedHtml(sourceElement) {
+        // Create a temporary, disconnected div element
+        const tempDiv = document.createElement("div");
+        // Populate it with the source element's content
+        tempDiv.innerHTML = sourceElement.innerHTML;
+
+        // --- Perform cleaning operations on the temporary div ---
+
+        // 1. Remove inline style attributes
+        const styledElements = tempDiv.querySelectorAll("[style]");
+        styledElements.forEach((el) => el.removeAttribute("style"));
+        console.log(`Cleaned ${styledElements.length} inline styles pre-copy.`);
+
+        // 2. Remove class attributes (often carry unwanted styles)
+        const classedElements = tempDiv.querySelectorAll("[class]");
+        classedElements.forEach((el) => el.removeAttribute("class"));
+        console.log(
+          `Cleaned ${classedElements.length} class attributes pre-copy.`
+        );
+
+        // 3. Unwrap <code> tags
+        const codeTags = tempDiv.querySelectorAll("code");
+        codeTags.forEach((codeElement) => {
+          const parent = codeElement.parentNode;
+          if (parent) {
+            while (codeElement.firstChild) {
+              parent.insertBefore(codeElement.firstChild, codeElement);
+            }
+            codeElement.remove(); // Remove the empty <code>
+          }
+        });
+        console.log(`Unwrapped ${codeTags.length} code tags pre-copy.`);
+
+        // 4. Unwrap simple <span> tags (that don't contain block elements)
+        // This helps remove spans used purely for styling. Be careful if spans
+        // are used structurally in your expected content.
+        const spanTags = tempDiv.querySelectorAll("span");
+        spanTags.forEach((spanElement) => {
+          // Basic check: If a span contains block elements, maybe keep it?
+          // This check is simple; adjust if needed.
+          const containsBlockElement = spanElement.querySelector(
+            "p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, hr, table"
+          );
+
+          if (!containsBlockElement && spanElement.parentNode) {
+            const parent = spanElement.parentNode;
+            while (spanElement.firstChild) {
+              parent.insertBefore(spanElement.firstChild, spanElement);
+            }
+            spanElement.remove(); // Remove the empty <span>
+          }
+        });
+        console.log(
+          `Attempted to unwrap ${spanTags.length} span tags pre-copy.`
+        );
+
+        // Return the innerHTML of the cleaned temporary div
+        return tempDiv.innerHTML;
+      }
+
+      // --- Paste Cleaning Logic (remains the same - cleans the live editor) ---
       if (editor) {
         editor.addEventListener("paste", (event) => {
           console.log("Paste event detected!");
-
-          // Wait briefly for the browser to insert the pasted content
           setTimeout(() => {
-            // --- Step 1: Remove inline style attributes ---
-            console.log("Cleaning up inline style attributes...");
+            console.log("--- Cleaning editor post-paste ---");
+            // Step 1: Remove inline styles
             const styledElements = editor.querySelectorAll("[style]");
-            if (styledElements.length > 0) {
-              console.log(
-                `Found ${styledElements.length} element(s) with inline styles to clean.`
-              );
-              styledElements.forEach((element) => {
-                element.removeAttribute("style");
-                element.removeAttribute("class");
-              });
-              console.log("Inline style attributes removed.");
-            } else {
-              console.log(
-                "No elements with inline style attributes found after paste."
-              );
-            }
+            styledElements.forEach((el) => el.removeAttribute("style"));
+            console.log(`Removed ${styledElements.length} inline styles.`);
 
-            // --- Step 2: Remove <code> tags but keep content ---
-            console.log("Replacing <code> tags...");
+            // Step 2: Remove class attributes
+            const classedElements = editor.querySelectorAll("[class]");
+            classedElements.forEach((el) => el.removeAttribute("class"));
+            console.log(`Removed ${classedElements.length} class attributes.`);
+
+            // Step 3: Unwrap <code> tags
             const codeTags = editor.querySelectorAll("code");
-            if (codeTags.length > 0) {
-              console.log(`Found ${codeTags.length} code tag(s) to replace.`);
-              codeTags.forEach((codeElement) => {
-                const parent = codeElement.parentNode;
-                if (parent) {
-                  // Insert all children of the <code> tag *before* the <code> tag itself
-                  while (codeElement.firstChild) {
-                    // insertBefore moves the node, so the list shrinks
-                    parent.insertBefore(codeElement.firstChild, codeElement);
-                  }
-                  // Remove the now-empty <code> tag
-                  parent.removeChild(codeElement);
-                  // Or simpler: codeElement.remove(); if IE support isn't needed
+            codeTags.forEach((codeElement) => {
+              const parent = codeElement.parentNode;
+              if (parent) {
+                while (codeElement.firstChild) {
+                  parent.insertBefore(codeElement.firstChild, codeElement);
                 }
-              });
-              console.log("Code tags replaced with their content.");
-            } else {
-              console.log("No <code> tags found after paste.");
-            }
-          }, 0); // 0ms delay
+                codeElement.remove();
+              }
+            });
+            console.log(`Unwrapped ${codeTags.length} code tags.`);
+
+            // Step 4: Unwrap simple <span> tags
+            const spanTags = editor.querySelectorAll("span");
+            spanTags.forEach((spanElement) => {
+              const containsBlockElement = spanElement.querySelector(
+                "p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, hr, table"
+              );
+              if (!containsBlockElement && spanElement.parentNode) {
+                const parent = spanElement.parentNode;
+                while (spanElement.firstChild) {
+                  parent.insertBefore(spanElement.firstChild, spanElement);
+                }
+                spanElement.remove();
+              }
+            });
+            console.log(`Attempted to unwrap ${spanTags.length} span tags.`);
+            console.log("--- Editor cleaning finished ---");
+          }, 0);
         });
       } else {
         console.error("Editor element not found!");
       }
 
-      // --- Copy Button Logic ---
+      // --- Copy Button Logic (Uses the cleaning function) ---
       if (copyButton && editor && copyFeedback) {
         copyButton.addEventListener("click", async () => {
-          const htmlContent = editor.innerHTML;
-          // Use innerText for a plain text fallback
+          // **Get the definitively cleaned HTML string**
+          const cleanedHtmlContent = getCleanedHtml(editor);
+
+          // Get plain text version as fallback (from the live editor is fine)
           const textContent = editor.innerText;
 
           // Clear previous feedback and disable button temporarily
-          copyFeedback.textContent = "";
+          showFeedback("", ""); // Clear feedback
           copyButton.disabled = true;
           copyButton.textContent = "Copying...";
 
-          // Check if Clipboard API is available
           if (!navigator.clipboard || !navigator.clipboard.write) {
-            copyFeedback.textContent =
-              "Clipboard API not supported by browser.";
-            copyFeedback.style.color = "red";
+            showFeedback("Clipboard API not supported.", "error");
             console.error("Clipboard API (write) not available.");
-            copyButton.disabled = false; // Re-enable button
-            copyButton.textContent = "Copy as HTML";
+            copyButton.disabled = false;
+            copyButton.textContent = "Copy Clean HTML";
             return;
           }
 
           try {
-            // Create Blob objects for HTML and plain text
-            const htmlBlob = new Blob([htmlContent], { type: "text/html" });
+            // Use the CLEANED HTML for the blob
+            const htmlBlob = new Blob([cleanedHtmlContent], {
+              type: "text/html",
+            });
             const textBlob = new Blob([textContent], { type: "text/plain" });
 
-            // Create a ClipboardItem object
-            // This allows pasting as rich text (HTML) where supported,
-            // and falls back to plain text otherwise.
             const clipboardItem = new ClipboardItem({
               "text/html": htmlBlob,
-              //   "text/plain": textBlob,
+              "text/plain": textBlob,
             });
 
-            // Write the item to the clipboard
             await navigator.clipboard.write([clipboardItem]);
-
-            console.log("HTML content copied to clipboard.");
-            copyFeedback.textContent = "Copied!";
-            copyFeedback.style.color = "green";
-
-            // Reset feedback after a delay
-            setTimeout(() => {
-              copyFeedback.textContent = "";
-            }, 2500);
+            console.log("Cleaned HTML content copied to clipboard.");
+            console.log("Copied HTML:", cleanedHtmlContent); // Log the actual copied HTML
+            showFeedback("Copied!", "success");
           } catch (err) {
-            console.error("Failed to copy HTML content: ", err);
-            copyFeedback.textContent = "Failed to copy.";
-            copyFeedback.style.color = "red";
-            // Provide more specific feedback if possible
+            console.error("Failed to copy cleaned HTML content: ", err);
+            let errorMsg = "Failed to copy.";
             if (err.name === "NotAllowedError") {
-              copyFeedback.textContent = "Clipboard permission denied.";
+              errorMsg = "Clipboard permission denied.";
             } else if (
               typeof ClipboardItem === "undefined" ||
               !navigator.clipboard.write
             ) {
-              copyFeedback.textContent =
-                "Clipboard API (write/ClipboardItem) not supported.";
+              errorMsg = "Clipboard API not fully supported.";
             }
+            showFeedback(errorMsg, "error");
           } finally {
-            // Re-enable button and restore text regardless of success/failure
             copyButton.disabled = false;
-            copyButton.textContent = "Copy without Colors";
+            copyButton.textContent = "Copy Clean HTML";
           }
         });
       } else {
