@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💖 Style Remover 💖</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Cute Color Palette */
+        --bg-light: #fff0f5; /* Lavender Blush */
+        --bg-container: #ffffff;
+        --text-dark: #4b0082; /* Indigo */
+        --text-light: #6a5acd; /* Slate Blue */
+        --primary: #da70d6; /* Orchid */
+        --primary-dark: #ba55d3; /* Medium Orchid */
+        --secondary: #ffb6c1; /* Light Pink */
+        --border-color: #e6e6fa; /* Lavender */
+        --success: #3cb371; /* Medium Sea Green */
+        --error: #dc143c; /* Crimson */
+        --focus-ring: #4b0082; /* Indigo for focus */
+
+        /* Fonts */
+        --font-family: "Nunito", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        margin: 0;
+        padding: 0;
+        font-size: 100%; /* 16px base typically */
+      }
+
+      body {
+        font-family: var(--font-family);
+        line-height: 1.6;
+        background-color: var(--bg-light);
+        color: var(--text-light);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Align to top */
+        min-height: 100vh;
+        padding: 2rem 1rem; /* Add padding around */
+
+        /* Main Container */
+        & > .container {
+          background-color: var(--bg-container);
+          padding: 2rem;
+          border-radius: 15px; /* Rounded corners */
+          box-shadow: 0 4px 15px rgba(106, 90, 205, 0.1); /* Subtle shadow */
+          max-width: 600px;
+          width: 100%;
+          text-align: center; /* Center text inside container */
+
+          /* Headings and Paragraphs */
+          & > h2 {
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+            font-size: 1.75rem; /* Larger heading */
+          }
+
+          & > p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: var(--text-light);
+            text-wrap: pretty;
+          }
+        }
+      }
+
+      /* Editor Styling */
+      #editor {
+        background-color: #fff; /* White background */
+        border: 2px solid var(--border-color);
+        border-radius: 8px; /* Slightly less rounded than container */
+        min-height: 200px; /* Increased height */
+        padding: 15px;
+        font-family: var(--font-family); /* Consistent font */
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem; /* More space below editor */
+        text-align: left; /* Align text inside editor to left */
+        color: var(--text-dark); /* Darker text for readability */
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        width: 100%; /* Ensure it takes full width of container */
+      }
+
+      /* Editor Focus State - Accessibility */
+      #editor:focus {
+        outline: none; /* Remove default outline */
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(218, 112, 214, 0.3); /* Soft focus ring */
+      }
+
+      /* Button Styling */
+      #copyButton {
+        background-color: var(--primary);
+        color: var(--bg-container);
+        border: none;
+        padding: 12px 25px; /* Generous padding */
+        border-radius: 25px; /* Pill shape */
+        font-family: var(--font-family);
+        font-size: 1rem;
+        font-weight: 700; /* Bold text */
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+        display: inline-block; /* Allow margin auto if needed */
+        margin-right: 10px; /* Space between button and feedback */
+      }
+
+      #copyButton:hover {
+        background-color: var(--primary-dark);
+      }
+
+      #copyButton:active {
+        transform: scale(0.98); /* Subtle press effect */
+      }
+
+      /* Button Focus State - Accessibility */
+      #copyButton:focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+
+      /* Disabled Button State */
+      #copyButton:disabled {
+        background-color: var(--secondary);
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      /* Feedback Area Styling */
+      #copyFeedback {
+        display: inline-block; /* Align with button */
+        vertical-align: middle; /* Align text vertically */
+        font-size: 0.95em;
+        font-weight: 700;
+        height: 1.5em; /* Ensure space is reserved */
+        font-style: normal; /* Remove default italic */
+        transition: color 0.3s ease;
+      }
+
+      /* Specific feedback colors (ensure good contrast) */
+      #copyFeedback.success {
+        color: var(--success);
+      }
+
+      #copyFeedback.error {
+        color: var(--error);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Container for centering and styling -->
+    <div class="container">
+      <h2>Paste Your Text Here! ✨</h2>
+      <p>Any pesky style attributes will magically disappear after pasting.</p>
+
+      <!-- The actual editor -->
+      <div
+        id="editor"
+        contenteditable="true"
+        role="textbox"
+        aria-multiline="true"
+        aria-label="Text editor area"
+      ></div>
+
+      <!-- Controls -->
+      <div>
+        <button id="copyButton">Copy Clean Text</button>
+        <span id="copyFeedback" aria-live="polite"></span>
+        <!-- aria-live makes screen readers announce changes -->
+      </div>
+    </div>
+
+    <script>
+      const editor = document.getElementById("editor");
+      const copyButton = document.getElementById("copyButton");
+      const copyFeedback = document.getElementById("copyFeedback");
+
+      if (editor) {
+        editor.addEventListener("paste", (event) => {
+          console.log("Paste event detected!");
+
+          // Wait briefly for the browser to insert the pasted content
+          setTimeout(() => {
+            // --- Step 1: Remove inline style attributes ---
+            console.log("Cleaning up inline style attributes...");
+            const styledElements = editor.querySelectorAll("[style]");
+            if (styledElements.length > 0) {
+              console.log(
+                `Found ${styledElements.length} element(s) with inline styles to clean.`
+              );
+              styledElements.forEach((element) => {
+                element.removeAttribute("style");
+                element.removeAttribute("class");
+              });
+              console.log("Inline style attributes removed.");
+            } else {
+              console.log(
+                "No elements with inline style attributes found after paste."
+              );
+            }
+
+            // --- Step 2: Remove <code> tags but keep content ---
+            console.log("Replacing <code> tags...");
+            const codeTags = editor.querySelectorAll("code");
+            if (codeTags.length > 0) {
+              console.log(`Found ${codeTags.length} code tag(s) to replace.`);
+              codeTags.forEach((codeElement) => {
+                const parent = codeElement.parentNode;
+                if (parent) {
+                  // Insert all children of the <code> tag *before* the <code> tag itself
+                  while (codeElement.firstChild) {
+                    // insertBefore moves the node, so the list shrinks
+                    parent.insertBefore(codeElement.firstChild, codeElement);
+                  }
+                  // Remove the now-empty <code> tag
+                  parent.removeChild(codeElement);
+                  // Or simpler: codeElement.remove(); if IE support isn't needed
+                }
+              });
+              console.log("Code tags replaced with their content.");
+            } else {
+              console.log("No <code> tags found after paste.");
+            }
+          }, 0); // 0ms delay
+        });
+      } else {
+        console.error("Editor element not found!");
+      }
+
+      // --- Copy Button Logic ---
+      if (copyButton && editor && copyFeedback) {
+        copyButton.addEventListener("click", async () => {
+          const htmlContent = editor.innerHTML;
+          // Use innerText for a plain text fallback
+          const textContent = editor.innerText;
+
+          // Clear previous feedback and disable button temporarily
+          copyFeedback.textContent = "";
+          copyButton.disabled = true;
+          copyButton.textContent = "Copying...";
+
+          // Check if Clipboard API is available
+          if (!navigator.clipboard || !navigator.clipboard.write) {
+            copyFeedback.textContent =
+              "Clipboard API not supported by browser.";
+            copyFeedback.style.color = "red";
+            console.error("Clipboard API (write) not available.");
+            copyButton.disabled = false; // Re-enable button
+            copyButton.textContent = "Copy as HTML";
+            return;
+          }
+
+          try {
+            // Create Blob objects for HTML and plain text
+            const htmlBlob = new Blob([htmlContent], { type: "text/html" });
+            const textBlob = new Blob([textContent], { type: "text/plain" });
+
+            // Create a ClipboardItem object
+            // This allows pasting as rich text (HTML) where supported,
+            // and falls back to plain text otherwise.
+            const clipboardItem = new ClipboardItem({
+              "text/html": htmlBlob,
+              //   "text/plain": textBlob,
+            });
+
+            // Write the item to the clipboard
+            await navigator.clipboard.write([clipboardItem]);
+
+            console.log("HTML content copied to clipboard.");
+            copyFeedback.textContent = "Copied!";
+            copyFeedback.style.color = "green";
+
+            // Reset feedback after a delay
+            setTimeout(() => {
+              copyFeedback.textContent = "";
+            }, 2500);
+          } catch (err) {
+            console.error("Failed to copy HTML content: ", err);
+            copyFeedback.textContent = "Failed to copy.";
+            copyFeedback.style.color = "red";
+            // Provide more specific feedback if possible
+            if (err.name === "NotAllowedError") {
+              copyFeedback.textContent = "Clipboard permission denied.";
+            } else if (
+              typeof ClipboardItem === "undefined" ||
+              !navigator.clipboard.write
+            ) {
+              copyFeedback.textContent =
+                "Clipboard API (write/ClipboardItem) not supported.";
+            }
+          } finally {
+            // Re-enable button and restore text regardless of success/failure
+            copyButton.disabled = false;
+            copyButton.textContent = "Copy without Colors";
+          }
+        });
+      } else {
+        console.error(
+          "Could not find editor, copy button, or feedback element."
+        );
+      }
+    </script>
+  </body>
+</html>
